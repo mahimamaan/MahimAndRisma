@@ -109,14 +109,28 @@
         ];
 
         // --- 4. ARCADE COMPONENT ---
-        const ArcadeMode = ({ onCashOut }) => {
-            const [score, setScore] = useState({ mahim: 0, risma: 0 });
-            const [history, setHistory] = useState([]);
+        const ArcadeMode = ({ onCashOut, onExit }) => {
+            // SAFETY NET 1: Initialize from LocalStorage if available
+            const [score, setScore] = useState(() => {
+                const saved = localStorage.getItem('gauntlet_arcade_score');
+                return saved ? JSON.parse(saved) : { mahim: 0, risma: 0 };
+            });
+            const [history, setHistory] = useState(() => {
+                const saved = localStorage.getItem('gauntlet_arcade_history');
+                return saved ? JSON.parse(saved) : [];
+            });
+
             const [gamesList, setGamesList] = useState(ARCADE_GAMES);
             const [selectedGame, setSelectedGame] = useState("Quick Match");
             const [isAddGameOpen, setIsAddGameOpen] = useState(false);
             const [newGameName, setNewGameName] = useState("");
             const [isCashOutConfirm, setIsCashOutConfirm] = useState(false);
+
+            // SAFETY NET 2: Save to LocalStorage on every change
+            useEffect(() => {
+                localStorage.setItem('gauntlet_arcade_score', JSON.stringify(score));
+                localStorage.setItem('gauntlet_arcade_history', JSON.stringify(history));
+            }, [score, history]);
 
             const handleWin = (winner) => {
                 const newScore = { ...score, [winner]: score[winner] + 1 };
@@ -129,6 +143,13 @@
                 };
                 setHistory([logEntry, ...history]);
             };
+
+            // Clear session data only on Cash Out
+            const confirmCashOut = (winner) => {
+                localStorage.removeItem('gauntlet_arcade_score');
+                localStorage.removeItem('gauntlet_arcade_history');
+                onCashOut(winner);
+            }
 
             const addCustomGame = (e) => {
                 e.preventDefault();
@@ -156,7 +177,10 @@
                                 <div className={`text-6xl font-black ${winner === 'Mahim' ? 'text-cyan-400' : winner === 'Risma' ? 'text-fuchsia-400' : 'text-white'}`}>{winner}</div>
                                 <div className="text-xl mt-4 font-bold text-gray-400">{score.mahim} - {score.risma}</div>
                             </div>
-                            <button onClick={() => onCashOut(winner)} className="px-8 py-3 bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 transition-colors">CONFIRM & EXIT</button>
+                            <div className="flex gap-4 justify-center">
+                                <button onClick={() => setIsCashOutConfirm(false)} className="text-xs text-gray-500 hover:text-white uppercase tracking-widest">Cancel</button>
+                                <button onClick={() => confirmCashOut(winner)} className="px-8 py-3 bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 transition-colors">CONFIRM & EXIT</button>
+                            </div>
                         </div>
                     </div>
                 );
@@ -168,7 +192,10 @@
                     <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,rgba(255,0,255,0.15),transparent_50%)] pointer-events-none"></div>
                     
                     <header className="flex justify-between items-center p-4 z-20 border-b border-white/10 bg-black/50 backdrop-blur">
-                        <div className="flex items-center gap-2"><Gamepad2 className="text-yellow-400 animate-pulse" /><span className="font-bold tracking-widest text-yellow-400 uppercase">NQ64 MODE</span></div>
+                        <div className="flex items-center gap-3">
+                            <button onClick={onExit} className="text-gray-600 hover:text-white transition-colors"><X size={20} /></button>
+                            <div className="flex items-center gap-2"><Gamepad2 className="text-yellow-400 animate-pulse" /><span className="font-bold tracking-widest text-yellow-400 uppercase">NQ64 MODE</span></div>
+                        </div>
                         <button onClick={() => setIsCashOutConfirm(true)} className="text-xs font-bold border border-red-500/50 text-red-400 px-3 py-1 rounded hover:bg-red-500/10 transition-colors uppercase tracking-wider">Cash Out</button>
                     </header>
 
@@ -257,6 +284,10 @@
           const [isArcadeMode, setIsArcadeMode] = useState(false);
           const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
           const [secretCode, setSecretCode] = useState('');
+          // PERMANENT UNLOCK CHECK (Check local storage on load)
+          const [isArcadeFeatureUnlocked, setIsArcadeFeatureUnlocked] = useState(() => {
+              return localStorage.getItem('gauntlet_arcade_unlocked') === 'true';
+          });
           
           // Auth Listener
           useEffect(() => {
@@ -326,10 +357,21 @@
           // ARCADE MODE HANDLERS
           const handleSecretSubmit = (e) => {
               e.preventDefault();
-              if (secretCode.toUpperCase() === 'NQ64') {
+              const code = secretCode.toUpperCase();
+              
+              if (code === 'NQ64') {
                   setIsArcadeMode(true);
                   setIsSecretModalOpen(false);
-              } else {
+                  setIsArcadeFeatureUnlocked(true);
+                  localStorage.setItem('gauntlet_arcade_unlocked', 'true');
+              } 
+              else if (code === 'LOCK') {
+                  setIsArcadeFeatureUnlocked(false);
+                  setIsSecretModalOpen(false);
+                  localStorage.removeItem('gauntlet_arcade_unlocked');
+                  alert("SYSTEM LOCKED. PROTOCOL 64 DEACTIVATED.");
+              }
+              else {
                   alert("ACCESS DENIED");
               }
               setSecretCode('');
@@ -372,7 +414,7 @@
 
           if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500">Loading The Gauntlet...</div>;
           if (!user) return <LoginScreen onLogin={setUser} />;
-          if (isArcadeMode) return <ArcadeMode onCashOut={handleArcadeCashOut} />;
+          if (isArcadeMode) return <ArcadeMode onCashOut={handleArcadeCashOut} onExit={() => setIsArcadeMode(false)} />;
 
           return (
             <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-fuchsia-500/30 pb-24 relative">
@@ -462,9 +504,15 @@
 
                 {/* THE PROTOCOL 64 BUTTON (SECRET) */}
                 <div className="flex justify-center mt-8 mb-4">
-                    <button onClick={() => setIsSecretModalOpen(true)} className="text-slate-800 hover:text-slate-700 transition-colors">
-                        <Lock size={16} />
-                    </button>
+                    {isArcadeFeatureUnlocked ? (
+                        <button onClick={() => setIsArcadeMode(true)} className="text-yellow-500 hover:text-yellow-400 transition-colors animate-pulse-fast">
+                            <Gamepad2 size={24} />
+                        </button>
+                    ) : (
+                        <button onClick={() => setIsSecretModalOpen(true)} className="text-slate-800 hover:text-slate-700 transition-colors">
+                            <Lock size={16} />
+                        </button>
+                    )}
                 </div>
               </main>
 
