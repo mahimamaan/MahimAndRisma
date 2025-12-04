@@ -12,7 +12,7 @@
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel (Crucial: This translates the code for the browser) -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <!-- Firebase SDKs -->
@@ -30,6 +30,9 @@
                     dropShadow: {
                         'cyan': '0 0 10px rgba(34, 211, 238, 0.5)',
                         'fuchsia': '0 0 10px rgba(232, 121, 249, 0.5)',
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     }
                 }
             }
@@ -38,13 +41,12 @@
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        body { background-color: #020617; } /* Fix for mobile height issues */
+        body { background-color: #020617; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
     <div id="root"></div>
 
-    <!-- VITAL: This script tag must imply type="text/babel" for the code to run -->
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -59,7 +61,6 @@
             measurementId: "G-6Y9GFFQPDT"
         };
 
-        // Initialize Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -79,6 +80,10 @@
         const X = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>;
         const Trophy = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>;
         const LogOut = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+        const Gamepad2 = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/></svg>;
+        const History = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 16"/><path d="M3 5v11h11"/><path d="M12 7v5l4 2"/></svg>;
+        const Lock = ({ size = 24, className = "" }) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+
 
         // --- 3. DATA DEFAULTS ---
         const INITIAL_GAMES = [
@@ -97,7 +102,123 @@
           "Buy winner a treat < £5", "Admit you are wrong about everything"
         ];
 
-        // --- 4. LOGIN COMPONENT ---
+        const ARCADE_GAMES = [
+            "Quick Match", "Mario Kart", "Time Crisis", "Street Fighter II", 
+            "Pac-Man", "Guitar Hero", "DDR", "Air Hockey", "Skeeball", 
+            "Point Blank", "Crazy Taxi", "House of the Dead", "Tekken"
+        ];
+
+        // --- 4. ARCADE COMPONENT ---
+        const ArcadeMode = ({ onCashOut }) => {
+            const [score, setScore] = useState({ mahim: 0, risma: 0 });
+            const [history, setHistory] = useState([]);
+            const [gamesList, setGamesList] = useState(ARCADE_GAMES);
+            const [selectedGame, setSelectedGame] = useState("Quick Match");
+            const [isAddGameOpen, setIsAddGameOpen] = useState(false);
+            const [newGameName, setNewGameName] = useState("");
+            const [isCashOutConfirm, setIsCashOutConfirm] = useState(false);
+
+            const handleWin = (winner) => {
+                const newScore = { ...score, [winner]: score[winner] + 1 };
+                setScore(newScore);
+                const logEntry = {
+                    id: Date.now(),
+                    winner,
+                    game: selectedGame,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                setHistory([logEntry, ...history]);
+            };
+
+            const addCustomGame = (e) => {
+                e.preventDefault();
+                if (newGameName.trim()) {
+                    const name = newGameName.trim();
+                    setGamesList([...gamesList, name]);
+                    setSelectedGame(name);
+                    setNewGameName("");
+                    setIsAddGameOpen(false);
+                }
+            };
+
+            const getWinnerColor = (w) => w === 'mahim' ? 'text-cyan-400' : 'text-fuchsia-400';
+
+            // Final screen before returning to main app
+            if (isCashOutConfirm) {
+                const winner = score.mahim > score.risma ? 'Mahim' : score.risma > score.mahim ? 'Risma' : 'Draw';
+                return (
+                    <div className="min-h-screen bg-black text-white font-mono flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[length:100%_4px,6px_100%]"></div>
+                        <div className="z-20 text-center space-y-8 animate-in zoom-in duration-500">
+                            <h1 className="text-4xl font-black uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-white to-fuchsia-400">GAME OVER</h1>
+                            <div className="bg-gray-900 border-2 border-white/20 p-8 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+                                <div className="text-xs text-gray-500 mb-2 uppercase tracking-widest">Session Winner</div>
+                                <div className={`text-6xl font-black ${winner === 'Mahim' ? 'text-cyan-400' : winner === 'Risma' ? 'text-fuchsia-400' : 'text-white'}`}>{winner}</div>
+                                <div className="text-xl mt-4 font-bold text-gray-400">{score.mahim} - {score.risma}</div>
+                            </div>
+                            <button onClick={() => onCashOut(winner)} className="px-8 py-3 bg-white text-black font-black uppercase tracking-widest hover:bg-gray-200 transition-colors">CONFIRM & EXIT</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-black text-white font-mono flex flex-col relative overflow-hidden selection:bg-pink-500/50">
+                    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(120,50,255,0.2),transparent_70%)] pointer-events-none"></div>
+                    <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,rgba(255,0,255,0.15),transparent_50%)] pointer-events-none"></div>
+                    
+                    <header className="flex justify-between items-center p-4 z-20 border-b border-white/10 bg-black/50 backdrop-blur">
+                        <div className="flex items-center gap-2"><Gamepad2 className="text-yellow-400 animate-pulse" /><span className="font-bold tracking-widest text-yellow-400 uppercase">NQ64 MODE</span></div>
+                        <button onClick={() => setIsCashOutConfirm(true)} className="text-xs font-bold border border-red-500/50 text-red-400 px-3 py-1 rounded hover:bg-red-500/10 transition-colors uppercase tracking-wider">Cash Out</button>
+                    </header>
+
+                    <div className="p-4 z-20">
+                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x items-center">
+                            <button onClick={() => setIsAddGameOpen(true)} className="flex-shrink-0 w-10 h-10 rounded-full border border-yellow-500/50 text-yellow-500 flex items-center justify-center hover:bg-yellow-500/20 active:scale-95 transition-all snap-center bg-black"><Plus size={20} /></button>
+                            {gamesList.map(game => (
+                                <button key={game} onClick={() => setSelectedGame(game)} className={`flex-shrink-0 px-4 py-2 rounded-full border text-sm font-bold uppercase tracking-wider transition-all snap-center whitespace-nowrap ${selectedGame === game ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.5)] scale-105' : 'bg-black text-gray-500 border-gray-800 hover:border-gray-600'}`}>{game}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <main className="flex-1 flex flex-col justify-center p-4 gap-4 z-20 relative">
+                        <div className="flex justify-between items-end px-4 mb-2">
+                            <div className="text-center"><div className="text-6xl font-black text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)] leading-none">{score.mahim}</div><div className="text-xs font-bold text-cyan-500/50 uppercase tracking-[0.2em] mt-2">Mahim</div></div>
+                            <div className="text-gray-700 text-4xl font-thin italic pb-2">VS</div>
+                            <div className="text-center"><div className="text-6xl font-black text-fuchsia-400 drop-shadow-[0_0_15px_rgba(232,121,249,0.6)] leading-none">{score.risma}</div><div className="text-xs font-bold text-fuchsia-500/50 uppercase tracking-[0.2em] mt-2">Risma</div></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 h-64">
+                            <button onClick={() => handleWin('mahim')} className="relative group bg-slate-900 rounded-2xl border-2 border-cyan-500/30 overflow-hidden active:scale-95 transition-all"><div className="absolute inset-0 bg-cyan-500/10 group-hover:bg-cyan-500/20 transition-colors"></div><div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-4xl mb-2">🕹️</span><span className="font-black text-cyan-400 uppercase tracking-widest text-lg">Mahim<br/>Wins</span></div><div className="absolute bottom-0 w-full h-1 bg-cyan-500 shadow-[0_0_10px_#22d3ee]"></div></button>
+                            <button onClick={() => handleWin('risma')} className="relative group bg-slate-900 rounded-2xl border-2 border-fuchsia-500/30 overflow-hidden active:scale-95 transition-all"><div className="absolute inset-0 bg-fuchsia-500/10 group-hover:bg-fuchsia-500/20 transition-colors"></div><div className="absolute inset-0 flex flex-col items-center justify-center"><span className="text-4xl mb-2">👾</span><span className="font-black text-fuchsia-400 uppercase tracking-widest text-lg">Risma<br/>Wins</span></div><div className="absolute bottom-0 w-full h-1 bg-fuchsia-500 shadow-[0_0_10px_#e879f9]"></div></button>
+                        </div>
+                    </main>
+
+                    <div className="h-48 bg-gray-900/50 border-t border-white/10 z-20 flex flex-col">
+                        <div className="px-4 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2"><History size={12} /> Session Log</div>
+                        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+                            {history.length === 0 && <div className="text-gray-600 text-center text-xs italic mt-4">No games played yet. Insert Coin.</div>}
+                            {history.map(entry => (
+                                <div key={entry.id} className="flex justify-between items-center text-xs border-b border-white/5 pb-2 animate-in slide-in-from-bottom-2"><div className="flex flex-col"><span className="text-gray-300 font-bold uppercase">{entry.game}</span><span className="text-gray-600 font-mono">{entry.time}</span></div><div className={`font-black uppercase tracking-wider ${getWinnerColor(entry.winner)}`}>{entry.winner} WON</div></div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {isAddGameOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                            <div className="bg-gray-900 border border-yellow-500/30 rounded-2xl w-full max-w-sm p-6 shadow-[0_0_50px_rgba(234,179,8,0.1)]">
+                                <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold text-yellow-400 uppercase tracking-widest">New Challenger</h2><button onClick={() => setIsAddGameOpen(false)} className="text-gray-500 hover:text-white"><X size={24}/></button></div>
+                                <form onSubmit={addCustomGame} className="space-y-4">
+                                    <input autoFocus type="text" value={newGameName} onChange={(e) => setNewGameName(e.target.value)} placeholder="Game Name..." className="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-yellow-400 outline-none uppercase tracking-wider font-mono" />
+                                    <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest py-3 rounded-lg transition-colors">Add Game</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // --- 5. LOGIN COMPONENT ---
         const LoginScreen = ({ onLogin }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
@@ -113,50 +234,29 @@
             return (
                 <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950">
                     <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-                        <div className="text-center mb-8">
-                            <div className="inline-block p-3 bg-cyan-500/10 rounded-xl mb-4">
-                                <Swords className="w-8 h-8 text-cyan-400" />
-                            </div>
-                            <h1 className="text-2xl font-black text-white mb-1">THE GAUNTLET</h1>
-                            <p className="text-slate-500 text-sm">Mahim vs Risma</p>
-                        </div>
+                        <div className="text-center mb-8"><div className="inline-block p-3 bg-cyan-500/10 rounded-xl mb-4"><Swords className="w-8 h-8 text-cyan-400" /></div><h1 className="text-2xl font-black text-white mb-1">THE GAUNTLET</h1><p className="text-slate-500 text-sm">Mahim vs Risma</p></div>
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
-                                <input 
-                                    type="email" 
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-colors"
-                                    placeholder="admin@gauntlet.com"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
-                                <input 
-                                    type="password" 
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-colors"
-                                    placeholder="••••••••"
-                                />
-                            </div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-colors" placeholder="admin@gauntlet.com" /></div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none transition-colors" placeholder="••••••••" /></div>
                             {error && <div className="text-red-400 text-xs font-bold text-center">{error}</div>}
-                            <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors">
-                                Enter The Arena
-                            </button>
+                            <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors">Enter The Arena</button>
                         </form>
                     </div>
                 </div>
             );
         };
 
-        // --- 5. MAIN APP COMPONENT ---
+        // --- 6. MAIN APP COMPONENT ---
         const App = () => {
           const [user, setUser] = useState(null);
           const [loading, setLoading] = useState(true);
           const [games, setGames] = useState([]);
           const [forfeits, setForfeits] = useState([]);
+          
+          // ARCADE MODE STATE
+          const [isArcadeMode, setIsArcadeMode] = useState(false);
+          const [isSecretModalOpen, setIsSecretModalOpen] = useState(false);
+          const [secretCode, setSecretCode] = useState('');
           
           // Auth Listener
           useEffect(() => {
@@ -170,51 +270,24 @@
           // Firestore Listeners
           useEffect(() => {
             if (!user) return;
-
-            // Ensure documents exist
             const initDb = async () => {
                 const gamesRef = db.collection('championships').doc('main_event');
                 const doc = await gamesRef.get();
-                if (!doc.exists) {
-                    await gamesRef.set({ games: INITIAL_GAMES });
-                }
-                
+                if (!doc.exists) { await gamesRef.set({ games: INITIAL_GAMES }); }
                 const forfeitsRef = db.collection('championships').doc('forfeits');
                 const fDoc = await forfeitsRef.get();
-                if (!fDoc.exists) {
-                    await forfeitsRef.set({ list: DEFAULT_FORFEITS });
-                }
+                if (!fDoc.exists) { await forfeitsRef.set({ list: DEFAULT_FORFEITS }); }
             };
             initDb();
-
-            // Real-time Sync: Games
-            const unsubGames = db.collection('championships').doc('main_event')
-                .onSnapshot(doc => {
-                    if (doc.exists) setGames(doc.data().games || []);
-                });
-
-            // Real-time Sync: Forfeits
-            const unsubForfeits = db.collection('championships').doc('forfeits')
-                .onSnapshot(doc => {
-                    if (doc.exists) setForfeits(doc.data().list || []);
-                });
-
-            return () => {
-                unsubGames();
-                unsubForfeits();
-            };
+            const unsubGames = db.collection('championships').doc('main_event').onSnapshot(doc => { if (doc.exists) setGames(doc.data().games || []); });
+            const unsubForfeits = db.collection('championships').doc('forfeits').onSnapshot(doc => { if (doc.exists) setForfeits(doc.data().list || []); });
+            return () => { unsubGames(); unsubForfeits(); };
           }, [user]);
 
-          // --- ACTIONS (Now updating Firestore) ---
-          const saveGames = (newGames) => {
-              db.collection('championships').doc('main_event').update({ games: newGames });
-          };
-          
-          const saveForfeits = (newList) => {
-              db.collection('championships').doc('forfeits').update({ list: newList });
-          };
+          const saveGames = (newGames) => { db.collection('championships').doc('main_event').update({ games: newGames }); };
+          const saveForfeits = (newList) => { db.collection('championships').doc('forfeits').update({ list: newList }); };
 
-          // --- Logic ---
+          // Standard App Logic
           const handleBoutChange = (id, player, delta) => {
             const updated = games.map(g => {
               if (g.id !== id) return g;
@@ -228,13 +301,7 @@
           const claimSeriesWin = (id, winner) => {
             const updated = games.map(g => {
               if (g.id !== id) return g;
-              return {
-                ...g,
-                mahimSeries: winner === 'mahim' ? g.mahimSeries + 1 : g.mahimSeries,
-                rismaSeries: winner === 'risma' ? g.rismaSeries + 1 : g.rismaSeries,
-                mahimBout: 0,
-                rismaBout: 0
-              };
+              return { ...g, mahimSeries: winner === 'mahim' ? g.mahimSeries + 1 : g.mahimSeries, rismaSeries: winner === 'risma' ? g.rismaSeries + 1 : g.rismaSeries, mahimBout: 0, rismaBout: 0 };
             });
             saveGames(updated);
           };
@@ -249,55 +316,44 @@
             saveGames(updated);
           };
 
-          const updateNote = (id, newNote) => {
-            const updated = games.map(game => game.id === id ? { ...game, note: newNote } : game);
-            saveGames(updated);
+          const updateNote = (id, newNote) => { const updated = games.map(game => game.id === id ? { ...game, note: newNote } : game); saveGames(updated); };
+          const addNewGame = (e) => { e.preventDefault(); if (!newGameName.trim()) return; const newGame = { id: Date.now(), name: newGameName, mahimSeries: 0, rismaSeries: 0, mahimBout: 0, rismaBout: 0, status: 'active', note: 'New challenger approaches!', icon: newGameIcon }; saveGames([...games, newGame]); setNewGameName(''); setIsAddModalOpen(false); };
+          const deleteGame = (id) => { if(confirm("Are you sure you want to delete this game completely?")) { saveGames(games.filter(g => g.id !== id)); }};
+          const resolveDispute = () => { if (activeDisputeGame) { const updated = games.map(g => g.id === activeDisputeGame.id ? { ...g, status: 'active', note: `${g.note} (Resolved by Supreme Court)` } : g); saveGames(updated); setIsDisputeOpen(false); setActiveDisputeGame(null); }};
+          const addForfeit = (e) => { e.preventDefault(); if (newForfeit.trim()) { saveForfeits([...forfeits, newForfeit.trim()]); setNewForfeit(''); }};
+          const removeForfeit = (item) => { saveForfeits(forfeits.filter(f => f !== item)); };
+
+          // ARCADE MODE HANDLERS
+          const handleSecretSubmit = (e) => {
+              e.preventDefault();
+              if (secretCode.toUpperCase() === 'NQ64') {
+                  setIsArcadeMode(true);
+                  setIsSecretModalOpen(false);
+              } else {
+                  alert("ACCESS DENIED");
+              }
+              setSecretCode('');
           };
 
-          const addNewGame = (e) => {
-            e.preventDefault();
-            if (!newGameName.trim()) return;
-            const newGame = {
-              id: Date.now(),
-              name: newGameName,
-              mahimSeries: 0, rismaSeries: 0, mahimBout: 0, rismaBout: 0,
-              status: 'active',
-              note: 'New challenger approaches!',
-              icon: newGameIcon
-            };
-            saveGames([...games, newGame]);
-            setNewGameName('');
-            setIsAddModalOpen(false);
+          const handleArcadeCashOut = (winner) => {
+              setIsArcadeMode(false);
+              // Only award point if it wasn't a draw
+              if (winner !== 'Draw') {
+                  const arcadeGameCard = {
+                      id: Date.now(),
+                      name: 'NQ64 Arcade Night',
+                      mahimSeries: winner === 'Mahim' ? 1 : 0,
+                      rismaSeries: winner === 'Risma' ? 1 : 0,
+                      mahimBout: 0,
+                      rismaBout: 0,
+                      status: 'finished',
+                      note: `Arcade Mode Champion: ${winner}.`,
+                      icon: '🕹️'
+                  };
+                  saveGames([...games, arcadeGameCard]);
+              }
           };
 
-          const deleteGame = (id) => {
-            if(confirm("Are you sure you want to delete this game completely?")) {
-                saveGames(games.filter(g => g.id !== id));
-            }
-          };
-
-          const resolveDispute = () => {
-            if (activeDisputeGame) {
-              const updated = games.map(g => g.id === activeDisputeGame.id ? { ...g, status: 'active', note: `${g.note} (Resolved by Supreme Court)` } : g);
-              saveGames(updated);
-              setIsDisputeOpen(false);
-              setActiveDisputeGame(null);
-            }
-          };
-
-          const addForfeit = (e) => {
-            e.preventDefault();
-            if (newForfeit.trim()) {
-              saveForfeits([...forfeits, newForfeit.trim()]);
-              setNewForfeit('');
-            }
-          };
-
-          const removeForfeit = (item) => {
-            saveForfeits(forfeits.filter(f => f !== item));
-          };
-
-          // --- States for Modals ---
           const [isAddModalOpen, setIsAddModalOpen] = useState(false);
           const [isWheelOpen, setIsWheelOpen] = useState(false);
           const [isDisputeOpen, setIsDisputeOpen] = useState(false);
@@ -308,83 +364,44 @@
           const [wheelResult, setWheelResult] = useState(null);
           const [isSpinning, setIsSpinning] = useState(false);
 
-          // --- Derived Stats ---
           const mahimTotal = games.filter(g => g.mahimSeries > g.rismaSeries).length;
           const rismaTotal = games.filter(g => g.rismaSeries > g.mahimSeries).length;
 
-          // --- Wheel Logic ---
-          const spinWheel = () => {
-            if (isSpinning) return;
-            setIsSpinning(true);
-            setWheelResult(null);
-            let spins = 0;
-            const maxSpins = 20 + Math.floor(Math.random() * 10);
-            const interval = setInterval(() => {
-              spins++;
-              const randomIndex = Math.floor(Math.random() * forfeits.length);
-              setWheelResult(forfeits[randomIndex]);
-              if (spins >= maxSpins) {
-                clearInterval(interval);
-                setIsSpinning(false);
-              }
-            }, 100);
-          };
-
-          const getLeader = (m, r) => {
-            if (m > r) return { text: 'Mahim Leads Series', color: 'text-cyan-400', border: 'border-cyan-500/50' };
-            if (r > m) return { text: 'Risma Leads Series', color: 'text-fuchsia-400', border: 'border-fuchsia-500/50' };
-            return { text: 'Series Level', color: 'text-gray-400', border: 'border-slate-700' };
-          };
+          const spinWheel = () => { if (isSpinning) return; setIsSpinning(true); setWheelResult(null); let spins = 0; const maxSpins = 20 + Math.floor(Math.random() * 10); const interval = setInterval(() => { spins++; const randomIndex = Math.floor(Math.random() * forfeits.length); setWheelResult(forfeits[randomIndex]); if (spins >= maxSpins) { clearInterval(interval); setIsSpinning(false); } }, 100); };
+          const getLeader = (m, r) => { if (m > r) return { text: 'Mahim Leads Series', color: 'text-cyan-400', border: 'border-cyan-500/50' }; if (r > m) return { text: 'Risma Leads Series', color: 'text-fuchsia-400', border: 'border-fuchsia-500/50' }; return { text: 'Series Level', color: 'text-gray-400', border: 'border-slate-700' }; };
 
           if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-cyan-500">Loading The Gauntlet...</div>;
-          
           if (!user) return <LoginScreen onLogin={setUser} />;
+          if (isArcadeMode) return <ArcadeMode onCashOut={handleArcadeCashOut} />;
 
           return (
-            <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-fuchsia-500/30 pb-24">
+            <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-fuchsia-500/30 pb-24 relative">
               
               {/* Top Stats Bar */}
               <div className="bg-slate-900 border-b border-slate-800 sticky top-0 z-20 backdrop-blur-md bg-slate-900/90 shadow-xl">
                 <div className="max-w-4xl mx-auto px-4 py-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                      <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-lg shadow-lg shadow-cyan-500/20">
-                        <Swords className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <h1 className="text-lg font-black tracking-tight text-white">THE GAUNTLET</h1>
-                        <p className="text-xs text-slate-400 font-medium">Mahim vs. Risma</p>
-                      </div>
+                      <div className="bg-gradient-to-br from-cyan-500 to-blue-600 p-2 rounded-lg shadow-lg shadow-cyan-500/20"><Swords className="w-5 h-5 text-white" /></div>
+                      <div><h1 className="text-lg font-black tracking-tight text-white">THE GAUNTLET</h1><p className="text-xs text-slate-400 font-medium">Mahim vs. Risma</p></div>
                     </div>
-
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-4 mr-2">
-                            <div className="text-center">
-                                <div className="text-2xl font-black text-cyan-400 leading-none">{mahimTotal}</div>
-                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Mahim</div>
-                            </div>
+                            <div className="text-center"><div className="text-2xl font-black text-cyan-400 leading-none">{mahimTotal}</div><div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Mahim</div></div>
                             <div className="h-8 w-px bg-slate-800"></div>
-                            <div className="text-center">
-                                <div className="text-2xl font-black text-fuchsia-400 leading-none">{rismaTotal}</div>
-                                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Risma</div>
-                            </div>
+                            <div className="text-center"><div className="text-2xl font-black text-fuchsia-400 leading-none">{rismaTotal}</div><div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Risma</div></div>
                         </div>
-                        <button onClick={() => auth.signOut()} className="p-2 text-slate-600 hover:text-white bg-slate-800 rounded-lg transition-colors" title="Log Out">
-                            <LogOut size={16} />
-                        </button>
+                        <button onClick={() => auth.signOut()} className="p-2 text-slate-600 hover:text-white bg-slate-800 rounded-lg transition-colors" title="Log Out"><LogOut size={16} /></button>
                     </div>
                   </div>
                 </div>
               </div>
 
               <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-                
-                {/* Game Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {games.map(game => {
                     const statusStyle = getLeader(game.mahimSeries, game.rismaSeries);
                     const isContested = game.status === 'contested';
-                    
                     return (
                       <div key={game.id} className={`group relative bg-slate-900 rounded-2xl border ${isContested ? 'border-yellow-500/50' : statusStyle.border} overflow-hidden shadow-xl flex flex-col`}>
                         {isContested && ( <div className="absolute top-0 inset-x-0 h-1 bg-yellow-500 z-10" /> )}
@@ -394,11 +411,7 @@
                               <span className="text-4xl filter drop-shadow-lg">{game.icon}</span>
                               <div>
                                 <h3 className="font-bold text-xl text-white tracking-tight">{game.name}</h3>
-                                {isContested ? (
-                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20"><AlertCircle size={10} />Disputed</span>
-                                ) : (
-                                  <p className={`text-[10px] font-bold tracking-wide uppercase ${statusStyle.color}`}>{statusStyle.text}</p>
-                                )}
+                                {isContested ? ( <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20"><AlertCircle size={10} />Disputed</span> ) : ( <p className={`text-[10px] font-bold tracking-wide uppercase ${statusStyle.color}`}>{statusStyle.text}</p> )}
                               </div>
                             </div>
                             <div className="flex gap-1">
@@ -409,20 +422,12 @@
                           <div className="flex items-end justify-between px-4">
                             <div className="flex flex-col items-center">
                               <div className="text-4xl font-black text-cyan-400 leading-none">{game.mahimSeries}</div>
-                              <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => adjustSeriesManual(game.id, 'mahim', -1)} className="text-slate-600 hover:text-white"><Minus size={12}/></button>
-                                <span className="text-[9px] text-slate-500 font-bold uppercase">Series</span>
-                                <button onClick={() => adjustSeriesManual(game.id, 'mahim', 1)} className="text-slate-600 hover:text-white"><Plus size={12}/></button>
-                              </div>
+                              <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => adjustSeriesManual(game.id, 'mahim', -1)} className="text-slate-600 hover:text-white"><Minus size={12}/></button><span className="text-[9px] text-slate-500 font-bold uppercase">Series</span><button onClick={() => adjustSeriesManual(game.id, 'mahim', 1)} className="text-slate-600 hover:text-white"><Plus size={12}/></button></div>
                             </div>
                             <div className="text-slate-700 font-light text-2xl mb-4">vs</div>
                             <div className="flex flex-col items-center">
                               <div className="text-4xl font-black text-fuchsia-400 leading-none">{game.rismaSeries}</div>
-                              <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => adjustSeriesManual(game.id, 'risma', -1)} className="text-slate-600 hover:text-white"><Minus size={12}/></button>
-                                <span className="text-[9px] text-slate-500 font-bold uppercase">Series</span>
-                                <button onClick={() => adjustSeriesManual(game.id, 'risma', 1)} className="text-slate-600 hover:text-white"><Plus size={12}/></button>
-                              </div>
+                              <div className="flex items-center gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => adjustSeriesManual(game.id, 'risma', -1)} className="text-slate-600 hover:text-white"><Minus size={12}/></button><span className="text-[9px] text-slate-500 font-bold uppercase">Series</span><button onClick={() => adjustSeriesManual(game.id, 'risma', 1)} className="text-slate-600 hover:text-white"><Plus size={12}/></button></div>
                             </div>
                           </div>
                         </div>
@@ -430,17 +435,9 @@
                           <div className="mb-4">
                             <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3"><span>Current Bouts</span><span>Active Match</span></div>
                             <div className="bg-slate-900/50 rounded-xl p-1 flex items-center justify-between border border-slate-800/50">
-                              <div className="flex items-center gap-3 p-2">
-                                <button onClick={() => handleBoutChange(game.id, 'mahim', -1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"><Minus size={14} /></button>
-                                <span className="text-xl font-bold text-cyan-400 tabular-nums w-6 text-center">{game.mahimBout}</span>
-                                <button onClick={() => handleBoutChange(game.id, 'mahim', 1)} className="w-8 h-8 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white flex items-center justify-center transition-all active:scale-95 border border-cyan-500/20 hover:border-transparent"><Plus size={14} /></button>
-                              </div>
+                              <div className="flex items-center gap-3 p-2"><button onClick={() => handleBoutChange(game.id, 'mahim', -1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"><Minus size={14} /></button><span className="text-xl font-bold text-cyan-400 tabular-nums w-6 text-center">{game.mahimBout}</span><button onClick={() => handleBoutChange(game.id, 'mahim', 1)} className="w-8 h-8 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white flex items-center justify-center transition-all active:scale-95 border border-cyan-500/20 hover:border-transparent"><Plus size={14} /></button></div>
                               <div className="h-8 w-px bg-slate-800"></div>
-                              <div className="flex items-center gap-3 p-2">
-                                <button onClick={() => handleBoutChange(game.id, 'risma', -1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"><Minus size={14} /></button>
-                                <span className="text-xl font-bold text-fuchsia-400 tabular-nums w-6 text-center">{game.rismaBout}</span>
-                                <button onClick={() => handleBoutChange(game.id, 'risma', 1)} className="w-8 h-8 rounded-lg bg-fuchsia-500/10 hover:bg-fuchsia-500 text-fuchsia-500 hover:text-white flex items-center justify-center transition-all active:scale-95 border border-fuchsia-500/20 hover:border-transparent"><Plus size={14} /></button>
-                              </div>
+                              <div className="flex items-center gap-3 p-2"><button onClick={() => handleBoutChange(game.id, 'risma', -1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors"><Minus size={14} /></button><span className="text-xl font-bold text-fuchsia-400 tabular-nums w-6 text-center">{game.rismaBout}</span><button onClick={() => handleBoutChange(game.id, 'risma', 1)} className="w-8 h-8 rounded-lg bg-fuchsia-500/10 hover:bg-fuchsia-500 text-fuchsia-500 hover:text-white flex items-center justify-center transition-all active:scale-95 border border-fuchsia-500/20 hover:border-transparent"><Plus size={14} /></button></div>
                             </div>
                           </div>
                           {(game.mahimBout > 0 || game.rismaBout > 0) && (
@@ -450,9 +447,7 @@
                               {game.mahimBout === game.rismaBout && ( <div className="flex-1 py-2 text-center text-[10px] text-slate-500 uppercase font-bold italic">Score tied</div> )}
                             </div>
                           )}
-                          <div className="pt-2 border-t border-slate-800/50">
-                            <input type="text" value={game.note} onChange={(e) => updateNote(game.id, e.target.value)} className="w-full bg-transparent py-1 text-xs text-slate-400 focus:text-slate-200 focus:outline-none transition-colors placeholder:text-slate-700 italic" placeholder="Notes on this rivalry..." />
-                          </div>
+                          <div className="pt-2 border-t border-slate-800/50"><input type="text" value={game.note} onChange={(e) => updateNote(game.id, e.target.value)} className="w-full bg-transparent py-1 text-xs text-slate-400 focus:text-slate-200 focus:outline-none transition-colors placeholder:text-slate-700 italic" placeholder="Notes on this rivalry..." /></div>
                         </div>
                       </div>
                     );
@@ -464,53 +459,56 @@
                     <button onClick={() => setIsAddModalOpen(true)} className="bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-xl font-bold shadow-lg border border-slate-700 flex items-center justify-center gap-2 transition-all active:scale-95"><Plus size={20} /> Add Game</button>
                     <button onClick={() => setIsWheelOpen(true)} className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2 transition-all active:scale-95"><RefreshCw size={20} /> Forfeit Wheel</button>
                 </div>
+
+                {/* THE PROTOCOL 64 BUTTON (SECRET) */}
+                <div className="flex justify-center mt-8 mb-4">
+                    <button onClick={() => setIsSecretModalOpen(true)} className="text-slate-800 hover:text-slate-700 transition-colors">
+                        <Lock size={16} />
+                    </button>
+                </div>
               </main>
 
-              {/* Add Game Modal */}
+              {/* MODALS */}
               {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
                     <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold text-white">New Battleground</h2><button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white"><X size={24}/></button></div>
                     <form onSubmit={addNewGame} className="space-y-4">
                       <input autoFocus type="text" value={newGameName} onChange={(e) => setNewGameName(e.target.value)} placeholder="Game Name (e.g. Scrabble)" className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-white focus:border-cyan-500 outline-none" />
-                      <div className="grid grid-cols-6 gap-2">
-                        {['🏆','🎱','🏓','🏸','🎳','🎮','🎲','♟️','🥊','⛳','🏊','🏎️', '🧘', '🍳', '🧠'].map(icon => ( <button key={icon} type="button" onClick={() => setNewGameIcon(icon)} className={`h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${newGameIcon === icon ? 'bg-cyan-500/20 ring-2 ring-cyan-500' : 'bg-slate-950 hover:bg-slate-800'}`}>{icon}</button> ))}
-                      </div>
+                      <div className="grid grid-cols-6 gap-2">{['🏆','🎱','🏓','🏸','🎳','🎮','🎲','♟️','🥊','⛳','🏊','🏎️', '🧘', '🍳', '🧠'].map(icon => ( <button key={icon} type="button" onClick={() => setNewGameIcon(icon)} className={`h-10 rounded-lg text-xl flex items-center justify-center transition-colors ${newGameIcon === icon ? 'bg-cyan-500/20 ring-2 ring-cyan-500' : 'bg-slate-950 hover:bg-slate-800'}`}>{icon}</button> ))}</div>
                       <button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors">Create Game</button>
                     </form>
                   </div>
                 </div>
               )}
-
-              {/* Wheel Modal */}
               {isWheelOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col max-h-[80vh]">
                     <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings className="text-pink-500" size={20}/> Wheel of Misfortune</h2><button onClick={() => setIsWheelOpen(false)} className="text-slate-400 hover:text-white"><X size={24}/></button></div>
                     <div className="flex-1 overflow-y-auto mb-4 space-y-2 pr-2">
-                      <div className="bg-slate-950 rounded-xl p-6 text-center border-2 border-slate-800 mb-4 min-h-[120px] flex flex-col items-center justify-center">
-                        {isSpinning ? ( <RefreshCw className="w-8 h-8 text-pink-500 animate-spin" /> ) : wheelResult ? ( <div className="animate-in zoom-in duration-300"><p className="text-xs text-slate-500 uppercase font-bold mb-2">The loser must:</p><p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 leading-tight">{wheelResult}</p></div> ) : ( <p className="text-slate-600 text-sm font-medium">Spin to decide the loser's fate</p> )}
-                      </div>
+                      <div className="bg-slate-950 rounded-xl p-6 text-center border-2 border-slate-800 mb-4 min-h-[120px] flex flex-col items-center justify-center">{isSpinning ? ( <RefreshCw className="w-8 h-8 text-pink-500 animate-spin" /> ) : wheelResult ? ( <div className="animate-in zoom-in duration-300"><p className="text-xs text-slate-500 uppercase font-bold mb-2">The loser must:</p><p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 leading-tight">{wheelResult}</p></div> ) : ( <p className="text-slate-600 text-sm font-medium">Spin to decide the loser's fate</p> )}</div>
                       <div className="space-y-2"><p className="text-xs font-bold text-slate-500 uppercase">Customise Forfeits</p>{forfeits.map((item, idx) => ( <div key={idx} className="flex justify-between items-center bg-slate-800/50 p-2 rounded border border-slate-800 text-sm"><span>{item}</span><button onClick={() => removeForfeit(item)} className="text-slate-500 hover:text-red-400"><X size={14}/></button></div> ))}</div>
                     </div>
-                    <div className="mt-auto space-y-3 border-t border-slate-800 pt-4">
-                      <form onSubmit={addForfeit} className="flex gap-2"><input type="text" value={newForfeit} onChange={(e) => setNewForfeit(e.target.value)} placeholder="Add new forfeit..." className="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none" /><button type="submit" className="bg-slate-800 hover:bg-slate-700 px-3 rounded text-white"><Plus size={16}/></button></form>
-                      <button onClick={spinWheel} disabled={isSpinning} className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all active:scale-95 disabled:opacity-50">{isSpinning ? 'Spinning...' : 'SPIN THE WHEEL'}</button>
-                    </div>
+                    <div className="mt-auto space-y-3 border-t border-slate-800 pt-4"><form onSubmit={addForfeit} className="flex gap-2"><input type="text" value={newForfeit} onChange={(e) => setNewForfeit(e.target.value)} placeholder="Add new forfeit..." className="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm focus:border-pink-500 outline-none" /><button type="submit" className="bg-slate-800 hover:bg-slate-700 px-3 rounded text-white"><Plus size={16}/></button></form><button onClick={spinWheel} disabled={isSpinning} className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3 rounded-lg shadow-lg transition-all active:scale-95 disabled:opacity-50">{isSpinning ? 'Spinning...' : 'SPIN THE WHEEL'}</button></div>
                   </div>
                 </div>
               )}
-
-              {/* Dispute Modal */}
               {isDisputeOpen && activeDisputeGame && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                  <div className="bg-slate-900 border-2 border-yellow-500/30 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center">
-                    <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4"><HeartHandshake className="w-8 h-8 text-yellow-500" /></div>
-                    <h2 className="text-xl font-bold text-white mb-2">The Supreme Court</h2>
-                    <p className="text-slate-400 text-sm mb-6">To validate the result of <span className="text-white font-bold">{activeDisputeGame.name}</span>, the opposing party must digitally sign below.</p>
-                    <div className="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 text-left"><label className="flex items-start gap-3 cursor-pointer group"><input type="checkbox" className="peer h-5 w-5 rounded border border-slate-600 checked:bg-yellow-500" id="agreement" /><span className="text-xs text-slate-500 group-hover:text-slate-300 transition-colors">I hereby confirm that the result was valid, fair, and not a "trial run".</span></label></div>
-                    <div className="grid grid-cols-2 gap-3"><button onClick={() => setIsDisputeOpen(false)} className="py-3 text-slate-400 hover:text-white font-medium">Cancel</button><button onClick={resolveDispute} className="py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold shadow-lg shadow-yellow-500/20 transition-colors">Confirm & Seal</button></div>
-                  </div>
+                  <div className="bg-slate-900 border-2 border-yellow-500/30 rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center"><div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4"><HeartHandshake className="w-8 h-8 text-yellow-500" /></div><h2 className="text-xl font-bold text-white mb-2">The Supreme Court</h2><p className="text-slate-400 text-sm mb-6">To validate the result of <span className="text-white font-bold">{activeDisputeGame.name}</span>, the opposing party must digitally sign below.</p><div className="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 text-left"><label className="flex items-start gap-3 cursor-pointer group"><input type="checkbox" className="peer h-5 w-5 rounded border border-slate-600 checked:bg-yellow-500" id="agreement" /><span className="text-xs text-slate-500 group-hover:text-slate-300 transition-colors">I hereby confirm that the result was valid, fair, and not a "trial run".</span></label></div><div className="grid grid-cols-2 gap-3"><button onClick={() => setIsDisputeOpen(false)} className="py-3 text-slate-400 hover:text-white font-medium">Cancel</button><button onClick={resolveDispute} className="py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-lg font-bold shadow-lg shadow-yellow-500/20 transition-colors">Confirm & Seal</button></div></div>
+                </div>
+              )}
+
+              {/* SECRET MODAL */}
+              {isSecretModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+                   <div className="w-full max-w-xs text-center">
+                       <h2 className="text-slate-600 font-mono text-xs mb-4 uppercase tracking-widest">System Diagnostic</h2>
+                       <form onSubmit={handleSecretSubmit}>
+                           <input type="text" autoFocus value={secretCode} onChange={(e) => setSecretCode(e.target.value)} className="bg-transparent border-b border-slate-800 w-full text-center text-xl tracking-widest text-slate-500 focus:outline-none focus:border-cyan-500 uppercase font-mono" placeholder="ACCESS CODE" />
+                       </form>
+                       <button onClick={() => setIsSecretModalOpen(false)} className="mt-8 text-slate-700 text-xs hover:text-slate-500">ABORT</button>
+                   </div>
                 </div>
               )}
 
